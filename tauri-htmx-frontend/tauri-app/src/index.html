@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Overkill Budget App</title>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.5/dist/htmx.min.js" integrity="sha384-t4DxZSyQK+0Uv4jzy5B0QyHyWQD2GFURUmxKMBVww9+e2EJ0ei/vCvv7+79z0fkr" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <h1>Welcome to Budget Hell</h1>
+
+    <button hx-get="http://localhost:8000/hello" hx-target="#output" hx-swap="outerHTML">
+      Click Me (HTMX)
+    </button>
+
+    <div id="output"></div>
+    <div hx-get="/expenses" hx-trigger="load" hx-target="#expense-list" hx-swap="innerHTML"></div>
+
+    <div id="expense-list">
+    <!-- Server will inject this -->
+    </div>
+  </body>
+</html>
