@@ -1,0 +1,1 @@
+/home/zach/src/budget-htmx-rust/rust-backend/target/debug/budget_cli: /home/zach/src/budget-htmx-rust/rust-backend/src/db.rs /home/zach/src/budget-htmx-rust/rust-backend/src/main.rs /home/zach/src/budget-htmx-rust/rust-backend/src/models.rs /home/zach/src/budget-htmx-rust/rust-backend/src/record_repository.rs /home/zach/src/budget-htmx-rust/rust-backend/src/service.rs
