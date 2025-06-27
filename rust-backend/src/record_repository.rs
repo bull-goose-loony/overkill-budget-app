@@ -1,4 +1,8 @@
+use std::sync::{Arc, Mutex};
 use crate::models::Record;
+use crate::models::Frequency;
+use crate::models::RecordType;
+use crate::types::Db;
 
 use rusqlite::{params, Connection, Result};
 
@@ -40,6 +44,32 @@ pub fn update_record(conn: &Connection, record: &Record) -> Result<()> {
         ],
     )?;
     Ok(())
+}
+
+pub fn get_all(conn: &Connection) -> Result<Vec<Record>>  {
+    let mut stmt = conn.prepare("SELECT id, name, amount FROM financial_records")?;
+    let rows = stmt.query_map([], |row| {
+        Ok(Record {
+            id: Uuid::parse_str(row.get::<_, String>(0)?.as_str()).unwrap(),
+            name: row.get(1)?,
+            amount: row.get(2)?,
+            frequency: row
+                .get::<_, String>(3)?
+                .parse::<Frequency>()
+                .map_err(|_| rusqlite::Error::InvalidQuery)?,
+            record_type: row 
+                .get::<_, String>(4)?
+                .parse::<RecordType>()
+                .map_err(|_| rusqlite::Error::InvalidQuery)?,
+        })
+    })?;
+
+    let mut records = Vec::new();
+    for r in rows {
+        records.push(r?);
+    }
+
+    Ok(records)
 }
 
 #[cfg(test)]

@@ -1,11 +1,28 @@
-use rusqlite::Connection;
+use std::sync::{Arc, Mutex, MutexGuard};
 use uuid::Uuid;
 use log::{info, warn, error, debug};
 
+use rusqlite::{params, Connection, Result};
 use crate::models::{Record, Frequency, RecordType};
-use crate::record_repository::insert_record;
+use crate::types::Db;
+use crate::record_repository;
 
-pub fn add_income(conn: &Connection, name: &str, amount: f64, freq: Frequency) {
+pub fn get_all_records(db: &Db) -> Result<Vec<Record>> {
+    info!("Serving get_all_records request");
+
+    let conn = get_connection(&db)?;
+    record_repository::get_all(&conn)
+}
+
+pub fn get_connection(db: &Db) -> Result<MutexGuard<Connection>, rusqlite::Error> {
+    db.lock().map_err(|e| {
+        log::error!("Failed to lock DB mutex: {}", e);
+        rusqlite::Error::InvalidQuery // or your own custom error type
+    })
+}
+
+pub fn add_income(db: &Db, name: &str, amount: f64, freq: Frequency) {
+    let conn = db.lock().unwrap();
     if amount <= 0.0 {
         error!("Amount must be positive.");
         return;
@@ -21,12 +38,13 @@ pub fn add_income(conn: &Connection, name: &str, amount: f64, freq: Frequency) {
 
     info!("Adding new income {}", record.to_string());
 
-    if let Err(e) = insert_record(conn, &record) {
+    if let Err(e) = record_repository::insert_record(&conn, &record) {
         error!("Failed to add income for record{}: {}", record.to_string(), e);
     }
 }
 
-pub fn add_expense(conn: &Connection, name: &str, amount: f64, freq: Frequency) {
+pub fn add_expense(db: &Db, name: &str, amount: f64, freq: Frequency) {
+    let conn = db.lock().unwrap();
     if amount <= 0.0 {
         error!("Amount must be positive.");
         return;
@@ -42,23 +60,8 @@ pub fn add_expense(conn: &Connection, name: &str, amount: f64, freq: Frequency) 
 
     info!("Adding new expense {}", record.to_string());
 
-    if let Err(e) = insert_record(conn, &record) {
+    if let Err(e) = record_repository::insert_record(&conn, &record) {
         error!("Failed to add record: {}", e);
     }
 }
 
-pub fn add_debt(conn: &Connection, name: &str, amount: f64, freq: Frequency) {
-    let record = Record {
-        id: Uuid::new_v4(),
-        name: name.to_string(),
-        amount,
-        frequency: freq,
-        record_type: RecordType::Income,
-    };
-
-    info!("Adding financial record {}", record.to_string());
-
-    if let Err(e) = insert_record(conn, &record) {
-        error!("Failed to add record: {}", e);
-    }
-}

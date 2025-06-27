@@ -2,7 +2,6 @@
 use rusqlite::{Connection, Result};
 use std::fs;
 
-
 // initialize the database. load the schema.sql file
 pub fn init_db(path: &str) -> Result<Connection> {
     let conn = Connection::open(path)?;
