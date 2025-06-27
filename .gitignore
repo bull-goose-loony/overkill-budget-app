@@ -1,0 +1,44 @@
+# General OS
+.DS_Store
+Thumbs.db
+
+# Rust
+/target/
+/**/target/
+**/*.rs.bk
+**/*.rs~ # backup files
+Cargo.lock
+!*/Cargo.lock # unless you're publishing a lib
+**/*.log
+
+# SQLite DB files
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node.js stuff (for Tauri frontend or static assets)
+/**/node_modules/
+/**/dist/
+/**/build/
+/**/.parcel-cache/
+/**/.turbo/
+/**/.next/
+/**/.svelte-kit/
+
+# Tauri
+/src-tauri/target/
+/src-tauri/.tauri/
+/src-tauri/bundled/
+
+# Optional: dotenvs, API keys, local-only config
+.env
+.env.*
+/target
+**/target/
