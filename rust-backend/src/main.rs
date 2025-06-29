@@ -4,25 +4,16 @@ mod types;
 mod service;
 mod record_repository;
 mod controllers;
+mod AppError;
 
-use log::info;
-use uuid::Uuid;
-use std::env;
-use hyper::Server;
+use rusqlite::{Connection};
 
-use axum::{
-    extract::{Form, State},
-    response::{,Html,IntoResponse},
-    routing::{get, post},
-    Router,
-};
+use axum::{Router};
 
 use std::{
     net::SocketAddr,
     sync::{Arc, Mutex},
 };
-
-use crate::types::Db;
 
 #[tokio::main]
 async fn main() {
@@ -39,14 +30,14 @@ async fn main() {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     println!("Running on http://{}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+
+    // run our app with hyper, listening globally on port 3000
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 #[derive(Clone)]
 pub struct AppState {
-    pub database: &Db,
+    pub database: Arc<Mutex<Connection>>,
 }
 

@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
 use crate::models::Record;
 use crate::models::Frequency;
 use crate::models::RecordType;
-use crate::types::Db;
 
 use rusqlite::{params, Connection, Result};
 

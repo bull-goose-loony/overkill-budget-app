@@ -1,8 +1,8 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{MutexGuard};
 use uuid::Uuid;
-use log::{info, warn, error, debug};
+use log::{info, error};
 
-use rusqlite::{params, Connection, Result};
+use rusqlite::{Connection, Result};
 use crate::models::{Record, Frequency, RecordType};
 use crate::types::Db;
 use crate::record_repository;
@@ -11,7 +11,8 @@ pub fn get_all_records(db: &Db) -> Result<Vec<Record>> {
     info!("Serving get_all_records request");
 
     let conn = get_connection(&db)?;
-    record_repository::get_all(&conn)
+    let records = record_repository::get_all(&conn)?;
+    Ok(records)
 }
 
 pub fn get_connection(db: &Db) -> Result<MutexGuard<Connection>, rusqlite::Error> {

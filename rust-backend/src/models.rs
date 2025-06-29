@@ -1,8 +1,6 @@
 use serde::{Serialize, Deserialize};
 use std::fmt;
-use std::str::FromStr;
 use uuid::Uuid;
-use rusqlite::types::{ToSql, FromSql};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Frequency {
@@ -51,7 +49,7 @@ pub enum RecordType {
 impl std::str::FromStr for RecordType {
     type Err = ();
 
-    pub fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Income" => Ok(RecordType::Income),
             "Expense" => Ok(RecordType::Expense),
@@ -83,7 +81,7 @@ pub struct Record {
 
 
 impl fmt::Display for Record {
-    pub fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "[{}] {} | ${:.2} | {:?} | {:?}",
@@ -96,10 +94,10 @@ impl fmt::Display for Record {
     }
 }
 
-impl Record {
+  impl Record {
     pub fn new(name: String, amount: f64, frequency: Frequency, record_type: RecordType) -> Self {
         Self {
-            id: Uuidd;;new_v4(),
+            id: Uuid::new_v4(),
             name,
             amount,
             frequency,
