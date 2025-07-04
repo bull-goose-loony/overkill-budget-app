@@ -6,12 +6,20 @@ use rusqlite::{Connection, Result};
 use crate::models::{Record, Frequency, RecordType};
 use crate::types::Db;
 use crate::record_repository;
-
-pub fn get_all_records(db: &Db) -> Result<Vec<Record>> {
-    info!("Serving get_all_records request");
+//
+// pub fn get_all_records(db: &Db) -> Result<Vec<Record>> {
+//     info!("Serving get_all_records request");
+//
+//     let conn = get_connection(&db)?;
+//     let records = record_repository::get_all(&conn)?;
+//     Ok(records)
+// }
+//
+pub fn get_all_income(db: &Db) -> Result<Vec<Record>> {
+    info!("Serving get_all_income request");
 
     let conn = get_connection(&db)?;
-    let records = record_repository::get_all(&conn)?;
+    let records = record_repository::get_all_income(&conn)?;
     Ok(records)
 }
 

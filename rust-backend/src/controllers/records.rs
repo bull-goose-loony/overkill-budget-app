@@ -15,7 +15,7 @@ use crate::{service};
 use crate::{models::{Record, Frequency, RecordType}, record_repository};
 
 #[derive(Clone)]
-pub struct RecordState {
+pub struct RecordState { 
     pub database: Arc<Mutex<Connection>>,
 }
 
@@ -33,28 +33,73 @@ pub fn routes(db: Db) -> Router {
     };
 
     Router::new()
-        .route("/", get(get_all))
+        // .route("/", get(get_all))
+        .route("/income", get(get_all_income))
         .route("/add", post(add_record))
         .route("/:id", get(get_record))
         .with_state(state)
 }
 
 #[debug_handler]
-pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
-    let records = match service::get_all_records(&state.database) {
-        Ok(data) => data,
-        Err(e) => vec![]};
+pub async fn get_all_income(State(state): State<RecordState>) -> Html<String> {
+    info!("GET /records/income request");
+
+    let records = match service::get_all_income(&state.database) {
+        Ok(data) => {
+            info!("Retrieved {} income records from DB", data.len());
+            data
+        },
+        Err(e) => {
+            error!("Failed to fetch records: {:?}", e);
+            return Html("<p>Error retrieving records</p>".to_string());
+        }
+    };
 
     let html = records
         .iter()
-        .map(|r| format!("<li>{} - ${:.2}</li>", r.name, r.amount))
+        .map(|r| format!(
+            "<li>{} - ${:.2} [{} / {}]</li>",
+            r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
+        ))
         .collect::<Vec<_>>()
         .join("\n");
 
+    log::info!("{}", html);
     Html(format!("<ul>{}</ul>", html))
 }
 
+// TODO, let the API consumer specify what types of records it wants using record_type, frequency.
+
+// #[debug_handler]
+// pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
+//     info!("GET /records request");
+//
+//     let records = match service::get_all_records(&state.database) {
+//         Ok(data) => {
+//             info!("Retrieved {} records from DB", data.len());
+//             data
+//         },
+//         Err(e) => {
+//             error!("Failed to fetch records: {:?}", e);
+//             return Html("<p>Error retrieving records</p>".to_string());
+//         }
+//     };
+//
+//     let html = records
+//         .iter()
+//         .map(|r| format!(
+//             "<li>{} - ${:.2} [{} / {}]</li>",
+//             r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
+//         ))
+//         .collect::<Vec<_>>()
+//         .join("\n");
+//
+//     log::info!("{}", html);
+//     Html(format!("<ul>{}</ul>", html))
+// }
+
 async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord>) -> Html<String> {
+    println!("POST /records/add/ request");
     info!("Serving add_record request");
     let record = Record::new(
         form.name,
@@ -70,6 +115,7 @@ async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord
 }
 
 async fn get_record(Path(id): Path<String>) -> String {
+    println!("POST add_record request recordId={}", id);
     info!("Serving get_record(id={}) request", id);
 
     format!("Requested expense with ID: {}", id)

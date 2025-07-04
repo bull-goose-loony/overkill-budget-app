@@ -1,14 +1,14 @@
+use log::info;
+
 mod db;
 mod models;
 mod types;
 mod service;
 mod record_repository;
 mod controllers;
-mod AppError;
 
-use rusqlite::{Connection};
-
-use axum::{Router};
+use rusqlite::Connection;
+use axum::Router;
 
 use std::{
     net::SocketAddr,
@@ -18,6 +18,7 @@ use std::{
 #[tokio::main]
 async fn main() {
     env_logger::init();
+    log::info!("App Starting...");
     let conn = db::init_db("budget.db").expect("DB failed");
 
     // Wrap connection in atomic reference counter and a mutex so we can share it 
@@ -29,7 +30,7 @@ async fn main() {
         .nest("/api", controllers::routes(shared_conn.clone()));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
-    println!("Running on http://{}", addr);
+    info!("Running on http://{}", addr);
 
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

@@ -1,12 +1,14 @@
+use log::{info};
 
 use rusqlite::{Connection, Result};
 use std::fs;
 
 // initialize the database. load the schema.sql file
 pub fn init_db(path: &str) -> Result<Connection> {
+    info!("Initializing Database...");
     let conn = Connection::open(path)?;
 
-    let sql = fs::read_to_string("src/sql/schema.sql")
+    let sql = fs::read_to_string("sql/schema.sql")
         .expect("Failed to read schema.sql");
 
     conn.execute_batch(&sql)?;

@@ -2,6 +2,9 @@ use crate::models::Record;
 use crate::models::Frequency;
 use crate::models::RecordType;
 
+use std::option::Option;
+use std::option::Option::{Some, None};
+
 use rusqlite::{params, Connection, Result};
 
 use uuid::Uuid;
@@ -44,8 +47,7 @@ pub fn update_record(conn: &Connection, record: &Record) -> Result<()> {
     Ok(())
 }
 
-pub fn get_all(conn: &Connection) -> Result<Vec<Record>>  {
-    let mut stmt = conn.prepare("SELECT id, name, amount FROM financial_records")?;
+pub fn query_table(mut stmt: rusqlite::Statement) -> Result<Vec<Record>> {
     let rows = stmt.query_map([], |row| {
         Ok(Record {
             id: Uuid::parse_str(row.get::<_, String>(0)?.as_str()).unwrap(),
@@ -62,11 +64,19 @@ pub fn get_all(conn: &Connection) -> Result<Vec<Record>>  {
         })
     })?;
 
-    let mut records = Vec::new();
-    for r in rows {
-        records.push(r?);
-    }
+    let records: Vec<Record> = rows.filter_map(Result::ok).collect(); 
+    Ok(records)
+}
 
+// TODO, make a generic query that accepts RecordType, and frequency, and grabs records based on those.
+// this will make it so that the service layer can be more versatile, whereas the repository is solid and 
+// small
+
+pub fn get_all_income(conn: &Connection) -> Result<Vec<Record>>  {
+    let mut stmt = conn.prepare("
+        SELECT id, name, amount, frequency, record_type FROM financial_record
+        WHERE record_type = 'Income'")?;
+    let records: Vec<Record> = query_table(stmt)?;
     Ok(records)
 }
 
@@ -84,7 +94,7 @@ mod tests {
 
     fn init_schema(conn: &Connection) -> Result<()> {
         conn.execute(
-            "CREATE TABLE financial_record (
+            "CREATE TABLE IF NOT EXISTS financial_record (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 amount REAL NOT NULL,
