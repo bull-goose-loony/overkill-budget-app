@@ -1,3 +1,5 @@
+use crate::{models::{Record, Frequency, RecordType}, record_repository, service};
+
 use log::{info, error};
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
@@ -5,14 +7,11 @@ use axum::{
     extract::{Form, State, Path},
     response::Html,
     routing::{get, post},
-    Router,
-};
+    Router};
 use axum_macros::debug_handler;
 use rusqlite::Connection;
 use serde::Deserialize;
 use crate::types::Db;
-use crate::{service};
-use crate::{models::{Record, Frequency, RecordType}, record_repository};
 
 #[derive(Clone)]
 pub struct RecordState { 
@@ -33,11 +32,40 @@ pub fn routes(db: Db) -> Router {
     };
 
     Router::new()
-        // .route("/", get(get_all))
+        .route("/", get(get_all))
         .route("/income", get(get_all_income))
+        .route("/expenses", get(get_all_expenses))
         .route("/add", post(add_record))
         .route("/:id", get(get_record))
         .with_state(state)
+}
+
+#[debug_handler]
+pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
+    info!("GET /records/income request");
+
+    let records = match service::get_all_income(&state.database) {
+        Ok(data) => {
+            info!("Retrieved {} income records from DB", data.len());
+            data
+        },
+        Err(e) => {
+            error!("Failed to fetch records: {:?}", e);
+            return Html("<p>Error retrieving records</p>".to_string());
+        }
+    };
+
+    let html = records
+        .iter()
+        .map(|r| format!(
+            "<li>{} - ${:.2} [{} / {}]</li>",
+            r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
+        ))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    log::info!("{}", html);
+    Html(format!("<ul>{}</ul>", html))
 }
 
 #[debug_handler]
@@ -68,35 +96,33 @@ pub async fn get_all_income(State(state): State<RecordState>) -> Html<String> {
     Html(format!("<ul>{}</ul>", html))
 }
 
-// TODO, let the API consumer specify what types of records it wants using record_type, frequency.
+#[debug_handler]
+pub async fn get_all_expenses(State(state): State<RecordState>) -> Html<String> {
+    info!("GET /records/expenses request");
 
-// #[debug_handler]
-// pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
-//     info!("GET /records request");
-//
-//     let records = match service::get_all_records(&state.database) {
-//         Ok(data) => {
-//             info!("Retrieved {} records from DB", data.len());
-//             data
-//         },
-//         Err(e) => {
-//             error!("Failed to fetch records: {:?}", e);
-//             return Html("<p>Error retrieving records</p>".to_string());
-//         }
-//     };
-//
-//     let html = records
-//         .iter()
-//         .map(|r| format!(
-//             "<li>{} - ${:.2} [{} / {}]</li>",
-//             r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
-//         ))
-//         .collect::<Vec<_>>()
-//         .join("\n");
-//
-//     log::info!("{}", html);
-//     Html(format!("<ul>{}</ul>", html))
-// }
+    let records = match service::get_all_expenses(&state.database) {
+        Ok(data) => {
+            info!("Retrieved {} income records from DB", data.len());
+            data
+        },
+        Err(e) => {
+            error!("Failed to fetch records: {:?}", e);
+            return Html("<p>Error retrieving records</p>".to_string());
+        }
+    };
+
+    let html = records
+        .iter()
+        .map(|r| format!(
+            "<li>{} - ${:.2} [{} / {}]</li>",
+            r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
+        ))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    log::info!("{}", html);
+    Html(format!("<ul>{}</ul>", html))
+}
 
 async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord>) -> Html<String> {
     println!("POST /records/add/ request");
@@ -110,8 +136,7 @@ async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord
     let conn = state.database.lock().unwrap();
 
     let record = record_repository::insert_record(&conn, &record).unwrap();
-
-    Html(format!("<ul>{}</ul>", "shit"))
+    Html(format!("<ul>{}</ul>", "todo fix display formatting for record"))
 }
 
 async fn get_record(Path(id): Path<String>) -> String {

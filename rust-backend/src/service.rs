@@ -1,25 +1,35 @@
-use std::sync::{MutexGuard};
-use uuid::Uuid;
-use log::{info, error};
-
-use rusqlite::{Connection, Result};
-use crate::models::{Record, Frequency, RecordType};
+use crate::models::{RecordType, Frequency, Record};
 use crate::types::Db;
 use crate::record_repository;
-//
-// pub fn get_all_records(db: &Db) -> Result<Vec<Record>> {
-//     info!("Serving get_all_records request");
-//
-//     let conn = get_connection(&db)?;
-//     let records = record_repository::get_all(&conn)?;
-//     Ok(records)
-// }
-//
-pub fn get_all_income(db: &Db) -> Result<Vec<Record>> {
-    info!("Serving get_all_income request");
+
+use std::sync::MutexGuard;
+use uuid::Uuid;
+use log::{info, error};
+use rusqlite::{Connection, Result};
+
+pub fn get_all_records(db: &Db) -> Result<Vec<Record>> {
+    info!("Serving get_all_records request");
 
     let conn = get_connection(&db)?;
-    let records = record_repository::get_all_income(&conn)?;
+    let records = record_repository::get_records(&conn)?;
+    Ok(records)
+}
+
+pub fn get_all_income(db: &Db) -> Result<Vec<Record>> {
+    info!("Serving get_all_income request");
+    let conn = get_connection(&db)?;
+    let records = record_repository::get_records_by_type(
+        &conn,
+        RecordType::Income)?;
+    Ok(records)
+}
+
+pub fn get_all_expenses(db: &Db) -> Result<Vec<Record>> {
+    info!("Serving get_all_expenses request");
+    let conn = get_connection(&db)?;
+    let records = record_repository::get_records_by_type(
+        &conn,
+        RecordType::Income)?;
     Ok(records)
 }
 
