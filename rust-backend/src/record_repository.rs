@@ -2,6 +2,8 @@ use crate::models::Record;
 use crate::models::Frequency;
 use crate::models::RecordType;
 
+use log::{info, debug, error};
+
 use rusqlite::{params, Connection, Result};
 
 use uuid::Uuid;
@@ -11,11 +13,11 @@ pub fn insert_record(conn: &Connection, record: &Record) -> Result<()> {
         "INSERT INTO financial_record (id, name, amount, frequency, record_type)
         VALUES (?1, ?2, ?3, ?4, ?5)",
         params![
-            record.id.to_string(),
-            record.name,
-            record.amount,
-            record.frequency.to_string(),
-            record.record_type.to_string()
+            &record.id,
+            &record.name,
+            &record.amount,
+            &record.frequency,
+            &record.record_type
         ],
     )?;
     Ok(())
@@ -66,6 +68,7 @@ fn query_table(mut stmt: rusqlite::Statement, param: String) -> Result<Vec<Recor
 }
 
 pub fn get_records_by_type(conn: &Connection, record_type: RecordType) -> Result<Vec<Record>> {
+    debug!("getting records by type={}", record_type.to_string());
     let sql = "
         SELECT id, name, amount, frequency, record_type FROM financial_record 
         WHERE frequency = ?
@@ -77,6 +80,7 @@ pub fn get_records_by_type(conn: &Connection, record_type: RecordType) -> Result
 }
 
 pub fn get_records_by_freq(conn: &Connection, freq: Frequency) -> Result<Vec<Record>> {
+    debug!("getting records by frequency={}", freq.to_string());
     let stmt = format!("
         SELECT id, name, amount, frequency, record_type FROM financial_record
         WHERE frequency = {}", freq.to_string());
@@ -87,10 +91,22 @@ pub fn get_records_by_freq(conn: &Connection, freq: Frequency) -> Result<Vec<Rec
 }
 
 pub fn get_records(conn: &Connection) -> Result<Vec<Record>> {
+    debug!("getting all records");
     let sql = format!("SELECT id, name, amount, frequency, record_type FROM financial_record");
-    let stmt: rusqlite::Statement = conn.prepare(sql.as_str())?;
-    // Todo
-    let records: Vec<Record> = query_table(stmt, String::from(""))?;
+    let records: Vec<Record> = conn
+        .prepare(sql.as_str())?
+        .query_map([], |row| {
+            Ok( Record {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                amount: row.get(2)?,
+                frequency: row.get(3)?,
+                record_type: row.get(4)?,
+            })
+        })?
+        // collect up the inner Results, then propagate any error with `?`
+        .collect::<Result<Vec<Record>, rusqlite::Error>>()?;
+
     Ok(records)
 }
 

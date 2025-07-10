@@ -32,7 +32,7 @@ pub fn routes(db: Db) -> Router {
     };
 
     Router::new()
-        .route("/", get(get_all))
+        .route("/all", get(get_all))
         .route("/income", get(get_all_income))
         .route("/expenses", get(get_all_expenses))
         .route("/add", post(add_record))
@@ -42,9 +42,9 @@ pub fn routes(db: Db) -> Router {
 
 #[debug_handler]
 pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
-    info!("GET /records/income request");
+    info!("GET /records/ request");
 
-    let records = match service::get_all_income(&state.database) {
+    let records = match service::get_all_records(&state.database) {
         Ok(data) => {
             info!("Retrieved {} income records from DB", data.len());
             data
@@ -140,8 +140,8 @@ async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord
 }
 
 async fn get_record(Path(id): Path<String>) -> String {
-    println!("POST add_record request recordId={}", id);
     info!("Serving get_record(id={}) request", id);
+
 
     format!("Requested expense with ID: {}", id)
 }
