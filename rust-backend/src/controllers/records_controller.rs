@@ -1,7 +1,7 @@
 use crate::{models::{FinancialRecord,Frequency, RecordType}, record_repository, service};
 
 use uuid::{uuid, Uuid};
-use log::{info, error};
+use log::{info, debug, error};
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 use axum::{
@@ -60,8 +60,8 @@ pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
     let html = records
         .iter()
         .map(|r| format!(
-            "<li>{} - ${:.2} [{} / {}]</li>",
-            r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
+            "<li>{} - {} - ${:.2} [{} / {}]</li>",
+            r.id, r.name, r.amount, r.frequency.to_string(), r.record_type.to_string()
         ))
         .collect::<Vec<_>>()
         .join("\n");
@@ -163,8 +163,7 @@ async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord
         form.amount, 
         Frequency::from_str(form.frequency.as_str()).expect("AHHH"),
         RecordType::from_str(form.record_type.as_str()).expect("Doh!"));
-
-    let conn = state.database.lock().unwrap();
+    debug!("Adding {}", form.record_type.as_str());
 
     service::add_record(&state.database, &record);
     Html("<p>Successfully Added Record</p>".to_string())

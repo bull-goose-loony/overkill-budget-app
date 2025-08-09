@@ -59,7 +59,7 @@ pub fn add_record(db: &Db, record: &FinancialRecord) {
         name: record.name.to_string(),
         amount: record.amount,
         frequency: record.frequency,
-        record_type: RecordType::Income,
+        record_type: record.record_type,
     };
 
     info!("Adding new FinancialRecord {}", record.to_string());

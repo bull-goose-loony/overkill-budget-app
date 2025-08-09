@@ -1,5 +1,4 @@
 
-DROP TABLE IF EXISTS financial_record;
 CREATE TABLE IF NOT EXISTS financial_record (
     id BLOB PRIMARY KEY,
     name TEXT NOT NULL,
