@@ -1,14 +1,13 @@
-use crate::models::Record;
+use crate::models::FinancialRecord;
 use crate::models::Frequency;
 use crate::models::RecordType;
 
-use log::{info, debug, error};
-
+use log::debug;
 use rusqlite::{params, Connection, Result};
-
 use uuid::Uuid;
 
-pub fn insert_record(conn: &Connection, record: &Record) -> Result<()> {
+pub fn insert_record(conn: &Connection, record: &FinancialRecord) -> Result<()> {
+    debug!("insert_record({})", record.to_string());
     conn.execute(
         "INSERT INTO financial_record (id, name, amount, frequency, record_type)
         VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -23,7 +22,8 @@ pub fn insert_record(conn: &Connection, record: &Record) -> Result<()> {
     Ok(())
 }
 
-pub fn delete_record(conn: &Connection, id: Uuid) -> Result<()> {
+pub fn delete_record(conn: &Connection, id: &Uuid) -> Result<()> {
+    debug!("delete_record(id={})", id.to_string());
     conn.execute(
         "DELETE FROM financial_record WHERE id = ?1",
         params![id.to_string()],
@@ -31,7 +31,8 @@ pub fn delete_record(conn: &Connection, id: Uuid) -> Result<()> {
     Ok(())
 }
 
-pub fn update_record(conn: &Connection, record: &Record) -> Result<()> {
+pub fn update_record(conn: &Connection, record: &FinancialRecord) -> Result<()> {
+    debug!("update_record({})", record.to_string());
     conn.execute(
         "UPDATE financial_record SET name = ?1, amount = ?2, frequency = ?3, record_type = ?4
          WHERE id = ?5",
@@ -46,9 +47,9 @@ pub fn update_record(conn: &Connection, record: &Record) -> Result<()> {
     Ok(())
 }
 
-fn query_table(mut stmt: rusqlite::Statement, param: String) -> Result<Vec<Record>> {
+fn query_table(mut stmt: rusqlite::Statement, param: String) -> Result<Vec<FinancialRecord>> {
     let rows = stmt.query_map([param.as_str()], |row| {
-        Ok(Record {
+        Ok(FinancialRecord {
             id: Uuid::parse_str(row.get::<_, String>(0)?.as_str()).unwrap(),
             name: row.get(1)?,
             amount: row.get(2)?,
@@ -63,11 +64,11 @@ fn query_table(mut stmt: rusqlite::Statement, param: String) -> Result<Vec<Recor
         })
     })?;
 
-    let records: Vec<Record> = rows.filter_map(Result::ok).collect(); 
+    let records: Vec<FinancialRecord> = rows.filter_map(Result::ok).collect(); 
     Ok(records)
 }
 
-pub fn get_records_by_type(conn: &Connection, record_type: RecordType) -> Result<Vec<Record>> {
+pub fn get_records_by_type(conn: &Connection, record_type: RecordType) -> Result<Vec<FinancialRecord>> {
     debug!("getting records by type={}", record_type.to_string());
     let sql = "
         SELECT id, name, amount, frequency, record_type FROM financial_record 
@@ -75,28 +76,28 @@ pub fn get_records_by_type(conn: &Connection, record_type: RecordType) -> Result
     ";
 
     let stmt: rusqlite::Statement = conn.prepare(sql)?;
-    let records: Vec<Record> = query_table(stmt, record_type.to_string())?;
+    let records: Vec<FinancialRecord> = query_table(stmt, record_type.to_string())?;
     Ok(records)
 }
 
-pub fn get_records_by_freq(conn: &Connection, freq: Frequency) -> Result<Vec<Record>> {
+pub fn get_records_by_freq(conn: &Connection, freq: Frequency) -> Result<Vec<FinancialRecord>> {
     debug!("getting records by frequency={}", freq.to_string());
     let stmt = format!("
         SELECT id, name, amount, frequency, record_type FROM financial_record
         WHERE frequency = {}", freq.to_string());
     let stmt: rusqlite::Statement = conn.prepare(stmt.as_str())?;
     // Todo
-    let records: Vec<Record> = query_table(stmt, String::from(""))?;
+    let records: Vec<FinancialRecord> = query_table(stmt, String::from(""))?;
     Ok(records)
 }
 
-pub fn get_records(conn: &Connection) -> Result<Vec<Record>> {
+pub fn get_records(conn: &Connection) -> Result<Vec<FinancialRecord>> {
     debug!("getting all records");
     let sql = format!("SELECT id, name, amount, frequency, record_type FROM financial_record");
-    let records: Vec<Record> = conn
+    let records: Vec<FinancialRecord> = conn
         .prepare(sql.as_str())?
         .query_map([], |row| {
-            Ok( Record {
+            Ok( FinancialRecord {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 amount: row.get(2)?,
@@ -105,28 +106,35 @@ pub fn get_records(conn: &Connection) -> Result<Vec<Record>> {
             })
         })?
         // collect up the inner Results, then propagate any error with `?`
-        .collect::<Result<Vec<Record>, rusqlite::Error>>()?;
+        .collect::<Result<Vec<FinancialRecord>, rusqlite::Error>>()?;
 
     Ok(records)
 }
 
-pub fn get_record_by_id(conn: &Connection, id: Uuid) -> Result<Record, rusqlite::Error> {
-    let sql = format!("
-        SELECT id, name, amount, frequency, record_type FROM financial_record
-        WHERE id = {}", id);
-    let stmt: rusqlite::Statement = conn.prepare(sql.as_str())?;
-    let record: Record = query_table(stmt, id.to_string())?
-        .into_iter()
-        .next()
-        .ok_or(rusqlite::Error::QueryReturnedNoRows)?;
-    Ok(record)
+pub fn get_record_by_id(conn: &Connection, id: &Uuid) -> Result<FinancialRecord, rusqlite::Error> {
+    debug!("get_record_by_id(id={})", id.to_string());
+    conn.query_row(
+        "SELECT id, name, amount, frequency, record_type
+         FROM financial_record
+         WHERE id = ?1",
+         params![id],
+         | row | {
+            Ok( FinancialRecord {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                amount: row.get(2)?,
+                frequency: row.get(3)?,
+                record_type: row.get(4)?,
+            })
+         },
+    )
 }
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{Record, Frequency, RecordType};
+    use crate::models::{FinancialRecord, Frequency, RecordType};
     use uuid::Uuid;
 
     fn setup_conn() -> Connection {
@@ -152,7 +160,7 @@ mod tests {
     #[test]
     fn test_insert_record() {
         let conn = setup_conn();
-        let record = Record {
+        let record = FinancialRecord {
             id: Uuid::new_v4(),
             name: "Test Income".into(),
             amount: 1000.0,
@@ -172,7 +180,7 @@ mod tests {
     #[test]
     fn test_delete_record() {
         let conn = setup_conn();
-        let record = Record {
+        let record = FinancialRecord {
             id: Uuid::new_v4(),
             name: "To Delete".into(),
             amount: 200.0,
@@ -192,7 +200,7 @@ mod tests {
     #[test]
     fn test_update_record() {
         let conn = setup_conn();
-        let mut record = Record {
+        let mut record = FinancialRecord {
             id: Uuid::new_v4(),
             name: "Old Name".into(),
             amount: 50.0,

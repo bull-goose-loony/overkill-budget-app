@@ -1,5 +1,6 @@
-use crate::{models::{Record, Frequency, RecordType}, record_repository, service};
+use crate::{models::{FinancialRecord,Frequency, RecordType}, record_repository, service};
 
+use uuid::{uuid, Uuid};
 use log::{info, error};
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
@@ -36,7 +37,8 @@ pub fn routes(db: Db) -> Router {
         .route("/income", get(get_all_income))
         .route("/expenses", get(get_all_expenses))
         .route("/add", post(add_record))
-        .route("/:id", get(get_record))
+        .route("/delete/:id", post(delete_record))
+        .route("/:id", get(get_record_by_id))
         .with_state(state)
 }
 
@@ -66,6 +68,36 @@ pub async fn get_all(State(state): State<RecordState>) -> Html<String> {
 
     log::info!("{}", html);
     Html(format!("<ul>{}</ul>", html))
+}
+
+#[debug_handler]
+pub async fn get_record_by_id(
+    Path(id): Path<Uuid>,
+    State(state): State<RecordState>,
+) -> Html<String> {
+
+    info!("GET /records/{} request", id);
+    match service::get_record_by_id(&state.database, &id) {
+        Ok(r) => {
+            // render a single record
+            let html = format!(
+                "<h1>Record {}</h1>\
+                 <ul>\
+                   <li>Name: {}</li>\
+                   <li>Amount: ${:.2}</li>\
+                   <li>Frequency: {}</li>\
+                   <li>Type: {}</li>\
+                 </ul>",
+                r.id, r.name, r.amount, r.frequency, r.record_type,
+            );
+            Html(html)
+        }
+
+        Err(e) => {
+            error!("Failed to fetch record `{}`: {:?}", id, e);
+            Html(format!("<p>Error retrieving record `{}`</p>", id))
+        }
+    }
 }
 
 #[debug_handler]
@@ -125,9 +157,8 @@ pub async fn get_all_expenses(State(state): State<RecordState>) -> Html<String> 
 }
 
 async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord>) -> Html<String> {
-    println!("POST /records/add/ request");
     info!("Serving add_record request");
-    let record = Record::new(
+    let record = FinancialRecord::new(
         form.name,
         form.amount, 
         Frequency::from_str(form.frequency.as_str()).expect("AHHH"),
@@ -135,13 +166,14 @@ async fn add_record(State(state): State<RecordState>, Form(form): Form<NewRecord
 
     let conn = state.database.lock().unwrap();
 
-    let record = record_repository::insert_record(&conn, &record).unwrap();
-    Html(format!("<ul>{}</ul>", "todo fix display formatting for record"))
+    service::add_record(&state.database, &record);
+    Html("<p>Successfully Added Record</p>".to_string())
 }
 
-async fn get_record(Path(id): Path<String>) -> String {
-    info!("Serving get_record(id={}) request", id);
+async fn delete_record(Path(id): Path<Uuid>, State(state): State<RecordState>) -> Html<String> {
+    info!("Serving delete_record request");
 
-
-    format!("Requested expense with ID: {}", id)
+    service::delete_record(&state.database, &id);
+    Html("<p>Successfully Deleted Record</p>".to_string())
 }
+

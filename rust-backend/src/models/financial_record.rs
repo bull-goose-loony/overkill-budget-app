@@ -8,7 +8,7 @@ use super::record_type::RecordType;
 /// Financial Record: income, expense, debt,
 /// ——————————————————————————————————————————————
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Record {
+pub struct FinancialRecord {
     pub id: Uuid,
 
     pub name: String,
@@ -18,7 +18,7 @@ pub struct Record {
     pub record_type: RecordType,
 }
 
-impl Record {
+impl FinancialRecord {
     pub fn new(
         name: impl Into<String>,
         amount: f64,
@@ -35,7 +35,7 @@ impl Record {
     }
 }
 
-impl fmt::Display for Record {
+impl fmt::Display for FinancialRecord {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
